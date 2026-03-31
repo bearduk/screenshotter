@@ -225,20 +225,9 @@ async function captureScreenshots() {
       await page.goto(url, { waitUntil: 'load', timeout: 30000 });
 
       // Dismiss cookie banners (prefer deny, fall back to accept)
-      var cookieSelectors = [
-        'button:has-text("Deny all")',
-        'button:has-text("Reject all")',
-        'button:has-text("Decline all")',
-        'button:has-text("Accept all")',
-        'button:has-text("Accept cookies")',
-        'button:has-text("Got it")',
-        '[data-consent="reject"]',
-        '[data-consent="accept"]'
-      ];
-      for (var j = 0; j < cookieSelectors.length; j++) {
-        var clicked = await page.click(cookieSelectors[j], { timeout: 1000 }).then(function() { return true; }).catch(function() { return false; });
-        if (clicked) break;
-      }
+      await page.locator('button:has-text("Deny all"), button:has-text("Reject all"), button:has-text("Decline all")').first().click({ timeout: 500 }).catch(function() {
+        return page.locator('button:has-text("Accept all"), button:has-text("Accept cookies"), button:has-text("Got it")').first().click({ timeout: 500 });
+      }).catch(function() {});
 
       // Scroll page to trigger lazy-loaded images
       await page.evaluate(function() {
