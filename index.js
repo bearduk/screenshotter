@@ -1,4 +1,5 @@
 var playwright = require('playwright');
+var sharp = require('sharp');
 var path = require('path');
 var fs = require('fs');
 var exec = require('child_process').exec;
@@ -37,7 +38,7 @@ function sleep(ms) {
 }
 
 function archiveExisting() {
-  var files = ['desktop.png', 'tablet.png', 'mobile.png'];
+  var files = ['desktop.png', 'tablet.png', 'mobile.png', 'mockup.png'];
   var existingFiles = files.filter(function(f) {
     return fs.existsSync(path.join(outputDir, f));
   });
@@ -65,6 +66,96 @@ function archiveExisting() {
 
   console.log('Archived previous screenshots to: archive/' + timestamp);
   console.log('');
+}
+
+async function createMockup() {
+  console.log('Creating device mockup...');
+
+  var desktopPath = path.join(outputDir, 'desktop.png');
+  var tabletPath = path.join(outputDir, 'tablet.png');
+  var mobilePath = path.join(outputDir, 'mobile.png');
+
+  // Device frame dimensions
+  var desktop = { screenW: 580, screenH: 360, bezel: 20, stand: 60 };
+  var tablet = { screenW: 280, screenH: 380, bezel: 16, radius: 24 };
+  var mobile = { screenW: 140, screenH: 280, bezel: 10, radius: 28 };
+
+  // Crop and resize screenshots to fit device screens
+  var desktopScreen = await sharp(desktopPath)
+    .resize(desktop.screenW, desktop.screenH, { fit: 'cover', position: 'top' })
+    .toBuffer();
+
+  var tabletScreen = await sharp(tabletPath)
+    .resize(tablet.screenW, tablet.screenH, { fit: 'cover', position: 'top' })
+    .toBuffer();
+
+  var mobileScreen = await sharp(mobilePath)
+    .resize(mobile.screenW, mobile.screenH, { fit: 'cover', position: 'top' })
+    .toBuffer();
+
+  // Create device frames as SVG
+  var desktopFrameSvg = '<svg width="' + (desktop.screenW + desktop.bezel * 2) + '" height="' + (desktop.screenH + desktop.bezel * 2 + desktop.stand) + '">' +
+    '<rect x="0" y="0" width="' + (desktop.screenW + desktop.bezel * 2) + '" height="' + (desktop.screenH + desktop.bezel * 2) + '" rx="8" fill="#1a1a1a"/>' +
+    '<rect x="' + ((desktop.screenW + desktop.bezel * 2) / 2 - 40) + '" y="' + (desktop.screenH + desktop.bezel * 2) + '" width="80" height="' + (desktop.stand - 10) + '" fill="#1a1a1a"/>' +
+    '<ellipse cx="' + ((desktop.screenW + desktop.bezel * 2) / 2) + '" cy="' + (desktop.screenH + desktop.bezel * 2 + desktop.stand - 8) + '" rx="60" ry="8" fill="#1a1a1a"/>' +
+    '</svg>';
+
+  var tabletFrameSvg = '<svg width="' + (tablet.screenW + tablet.bezel * 2) + '" height="' + (tablet.screenH + tablet.bezel * 2) + '">' +
+    '<rect x="0" y="0" width="' + (tablet.screenW + tablet.bezel * 2) + '" height="' + (tablet.screenH + tablet.bezel * 2) + '" rx="' + tablet.radius + '" fill="#1a1a1a"/>' +
+    '</svg>';
+
+  var mobileFrameSvg = '<svg width="' + (mobile.screenW + mobile.bezel * 2) + '" height="' + (mobile.screenH + mobile.bezel * 2) + '">' +
+    '<rect x="0" y="0" width="' + (mobile.screenW + mobile.bezel * 2) + '" height="' + (mobile.screenH + mobile.bezel * 2) + '" rx="' + mobile.radius + '" fill="#1a1a1a"/>' +
+    '<rect x="' + ((mobile.screenW + mobile.bezel * 2) / 2 - 25) + '" y="' + (mobile.screenH + mobile.bezel * 2 - 6) + '" width="50" height="4" rx="2" fill="#333"/>' +
+    '</svg>';
+
+  // Create device images with screenshots composited
+  var desktopDevice = await sharp(Buffer.from(desktopFrameSvg))
+    .composite([{ input: desktopScreen, left: desktop.bezel, top: desktop.bezel }])
+    .png()
+    .toBuffer();
+
+  var tabletDevice = await sharp(Buffer.from(tabletFrameSvg))
+    .composite([{ input: tabletScreen, left: tablet.bezel, top: tablet.bezel }])
+    .png()
+    .toBuffer();
+
+  var mobileDevice = await sharp(Buffer.from(mobileFrameSvg))
+    .composite([{ input: mobileScreen, left: mobile.bezel, top: mobile.bezel }])
+    .png()
+    .toBuffer();
+
+  // Calculate final canvas size
+  var desktopW = desktop.screenW + desktop.bezel * 2;
+  var desktopH = desktop.screenH + desktop.bezel * 2 + desktop.stand;
+  var tabletW = tablet.screenW + tablet.bezel * 2;
+  var tabletH = tablet.screenH + tablet.bezel * 2;
+  var mobileW = mobile.screenW + mobile.bezel * 2;
+  var mobileH = mobile.screenH + mobile.bezel * 2;
+
+  var gap = 40;
+  var canvasW = desktopW + gap + tabletW + gap + mobileW + 80;
+  var canvasH = Math.max(desktopH, tabletH, mobileH) + 80;
+
+  // Create final composite
+  var mockupPath = path.join(outputDir, 'mockup.png');
+  await sharp({
+    create: {
+      width: canvasW,
+      height: canvasH,
+      channels: 4,
+      background: { r: 245, g: 245, b: 245, alpha: 1 }
+    }
+  })
+    .composite([
+      { input: desktopDevice, left: 40, top: Math.floor((canvasH - desktopH) / 2) },
+      { input: tabletDevice, left: 40 + desktopW + gap, top: Math.floor((canvasH - tabletH) / 2) },
+      { input: mobileDevice, left: 40 + desktopW + gap + tabletW + gap, top: Math.floor((canvasH - mobileH) / 2) }
+    ])
+    .png()
+    .toFile(mockupPath);
+
+  console.log('  Saved: ' + mockupPath);
 }
 
 async function captureScreenshots() {
@@ -138,6 +229,10 @@ async function captureScreenshots() {
 
       await context.close();
     }
+
+    console.log('');
+
+    await createMockup();
 
     console.log('');
     console.log('Done! Screenshots saved to ' + outputDir);
