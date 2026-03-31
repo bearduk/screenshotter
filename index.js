@@ -71,8 +71,8 @@ async function captureScreenshots() {
       var context = await browser.newContext(contextOptions);
       var page = await context.newPage();
 
-      await page.goto(url, { waitUntil: 'networkidle' });
-      await sleep(2000);
+      await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+      await sleep(3000);
 
       var screenshotPath = path.join(outputDir, device.name + '.png');
       await page.screenshot({ path: screenshotPath, fullPage: true });

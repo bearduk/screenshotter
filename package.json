@@ -1,6 +1,9 @@
 {
   "name": "screenshotter",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
     "start": "node index.js"
   },

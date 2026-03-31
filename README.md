@@ -7,10 +7,15 @@ Uses [Playwright](https://playwright.dev/) for reliable browser automation and d
 ## Requirements
 
 - Node.js 16+ (tested with v22)
+- [nvm](https://github.com/nvm-sh/nvm) recommended for managing Node versions
 
 ## Installation
 
 ```bash
+# Switch to correct Node version (uses .nvmrc)
+nvm use
+
+# Install dependencies
 npm install
 npx playwright install chromium
 ```
@@ -18,6 +23,7 @@ npx playwright install chromium
 ## Usage
 
 ```bash
+nvm use
 node index.js <url>
 ```
 
