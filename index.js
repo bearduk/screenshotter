@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs');
 var exec = require('child_process').exec;
 
-var url = process.argv[2] || 'https://example.com';
+var url = process.argv[2] || 'https://webstage.keele.ac.uk/';
 var outputDir = path.join(__dirname, 'screenshots');
 
 var devices = [
