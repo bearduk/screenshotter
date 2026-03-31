@@ -1,6 +1,7 @@
 var playwright = require('playwright');
 var path = require('path');
 var fs = require('fs');
+var exec = require('child_process').exec;
 
 var url = process.argv[2] || 'https://example.com';
 var outputDir = path.join(__dirname, 'screenshots');
@@ -117,6 +118,8 @@ async function captureScreenshots() {
 
     console.log('');
     console.log('Done! Screenshots saved to ' + outputDir);
+
+    exec('open "' + outputDir + '"');
 
   } catch (error) {
     console.error('Error: ' + error.message);
