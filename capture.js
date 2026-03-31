@@ -229,14 +229,17 @@ async function captureScreenshots() {
         return page.locator('button:has-text("Accept all"), button:has-text("Accept cookies"), button:has-text("Got it")').first().click({ timeout: 500 });
       }).catch(function() {});
 
-      // Scroll page to trigger lazy-loaded images
+      // Scroll page to trigger lazy-loaded images (limited to 5 viewports max)
       await page.evaluate(function() {
         return new Promise(function(resolve) {
+          var maxScroll = window.innerHeight * 5;
+          var scrolled = 0;
           var distance = 400;
-          var delay = 100;
+          var delay = 50;
           var timer = setInterval(function() {
             window.scrollBy(0, distance);
-            if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+            scrolled += distance;
+            if (scrolled >= maxScroll || window.scrollY + window.innerHeight >= document.body.scrollHeight) {
               clearInterval(timer);
               window.scrollTo(0, 0);
               resolve();
@@ -245,11 +248,8 @@ async function captureScreenshots() {
         });
       });
 
-      // Wait for images to finish loading
-      await page.waitForFunction(function() {
-        var images = Array.from(document.images);
-        return images.every(function(img) { return img.complete; });
-      }, { timeout: 10000 }).catch(function() {});
+      // Brief wait for images
+      await sleep(500);
 
       await sleep(1000);
 
