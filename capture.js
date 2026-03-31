@@ -68,6 +68,31 @@ function archiveExisting() {
   console.log('');
 }
 
+function cleanOldArchives() {
+  var archiveDir = path.join(outputDir, 'archive');
+  if (!fs.existsSync(archiveDir)) {
+    return;
+  }
+
+  var maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+  var now = Date.now();
+  var deleted = 0;
+
+  fs.readdirSync(archiveDir).forEach(function(name) {
+    var dirPath = path.join(archiveDir, name);
+    var stat = fs.statSync(dirPath);
+    if (stat.isDirectory() && (now - stat.mtimeMs) > maxAge) {
+      fs.rmSync(dirPath, { recursive: true });
+      deleted++;
+    }
+  });
+
+  if (deleted > 0) {
+    console.log('Cleaned up ' + deleted + ' archive(s) older than 7 days');
+    console.log('');
+  }
+}
+
 async function createMockup() {
   console.log('Creating device mockup...');
 
@@ -168,6 +193,7 @@ async function captureScreenshots() {
   }
 
   archiveExisting();
+  cleanOldArchives();
 
   var browser = null;
 
