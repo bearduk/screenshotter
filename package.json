@@ -1,0 +1,10 @@
+{
+  "name": "screenshotter",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "playwright": "^1.42.0"
+  }
+}
