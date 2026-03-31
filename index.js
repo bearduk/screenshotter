@@ -106,7 +106,30 @@ async function captureScreenshots() {
       var page = await context.newPage();
 
       await page.goto(url, { waitUntil: 'load', timeout: 30000 });
-      await sleep(3000);
+
+      // Scroll page to trigger lazy-loaded images
+      await page.evaluate(function() {
+        return new Promise(function(resolve) {
+          var distance = 400;
+          var delay = 100;
+          var timer = setInterval(function() {
+            window.scrollBy(0, distance);
+            if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+              clearInterval(timer);
+              window.scrollTo(0, 0);
+              resolve();
+            }
+          }, delay);
+        });
+      });
+
+      // Wait for images to finish loading
+      await page.waitForFunction(function() {
+        var images = Array.from(document.images);
+        return images.every(function(img) { return img.complete; });
+      }, { timeout: 10000 }).catch(function() {});
+
+      await sleep(1000);
 
       var screenshotPath = path.join(outputDir, device.name + '.png');
       await page.screenshot({ path: screenshotPath, fullPage: true });
