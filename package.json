@@ -5,7 +5,7 @@
     "node": ">=16"
   },
   "scripts": {
-    "start": "node screenshotter.js"
+    "start": "node capture.js"
   },
   "dependencies": {
     "playwright": "^1.42.0",

@@ -24,7 +24,7 @@ npx playwright install chromium
 
 ```bash
 nvm use
-node screenshotter.js <url>
+node capture.js <url>
 ```
 
 Example:
