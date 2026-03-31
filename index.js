@@ -35,6 +35,37 @@ function sleep(ms) {
   });
 }
 
+function archiveExisting() {
+  var files = ['desktop.png', 'tablet.png', 'mobile.png'];
+  var existingFiles = files.filter(function(f) {
+    return fs.existsSync(path.join(outputDir, f));
+  });
+
+  if (existingFiles.length === 0) {
+    return;
+  }
+
+  var now = new Date();
+  var timestamp = now.getFullYear() +
+    '-' + String(now.getMonth() + 1).padStart(2, '0') +
+    '-' + String(now.getDate()).padStart(2, '0') +
+    '_' + String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0');
+
+  var archiveDir = path.join(outputDir, 'archive', timestamp);
+  fs.mkdirSync(archiveDir, { recursive: true });
+
+  existingFiles.forEach(function(f) {
+    var src = path.join(outputDir, f);
+    var dest = path.join(archiveDir, f);
+    fs.renameSync(src, dest);
+  });
+
+  console.log('Archived previous screenshots to: archive/' + timestamp);
+  console.log('');
+}
+
 async function captureScreenshots() {
   console.log('Taking screenshots of: ' + url);
   console.log('Output folder: ' + outputDir);
@@ -43,6 +74,8 @@ async function captureScreenshots() {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
+
+  archiveExisting();
 
   var browser = null;
 
