@@ -5,6 +5,7 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 
 var url = process.argv[2] || 'https://webstage.keele.ac.uk/';
+var sitePassword = process.argv[3] || process.env.SCREENSHOT_PASSWORD || '';
 var outputDir = path.join(__dirname, 'screenshots');
 
 var devices = [
@@ -225,9 +226,25 @@ async function captureScreenshots() {
       await page.goto(url, { waitUntil: 'load', timeout: 30000 });
 
       // Dismiss cookie banners (prefer deny, fall back to accept)
-      await page.locator('button:has-text("Deny all"), button:has-text("Reject all"), button:has-text("Decline all")').first().click({ timeout: 500 }).catch(function() {
+      await page.locator('#onetrust-reject-all-handler, button:has-text("Deny all"), button:has-text("Reject all"), button:has-text("Decline all")').first().click({ timeout: 2000 }).catch(function() {
         return page.locator('button:has-text("Accept all"), button:has-text("Accept cookies"), button:has-text("Got it")').first().click({ timeout: 500 });
       }).catch(function() {});
+
+      // Unlock password-gated pages when a password was provided
+      if (sitePassword) {
+        var passwordField = page.locator('#auth-password, input[type="password"]').first();
+        var passwordVisible = await passwordField.isVisible().catch(function() { return false; });
+        if (passwordVisible) {
+          console.log('  Entering site password...');
+          await passwordField.fill(sitePassword);
+          await page.locator('button:has-text("Unlock")').first().click({ timeout: 3000 });
+          await page.waitForSelector('#auth-password', { state: 'hidden', timeout: 10000 }).catch(function() {});
+          await sleep(1000);
+
+          // Cookie banner can reappear after unlock
+          await page.locator('#onetrust-reject-all-handler, button:has-text("Reject all")').first().click({ timeout: 2000 }).catch(function() {});
+        }
+      }
 
       // Scroll page to trigger lazy-loaded images (limited to 5 viewports max)
       await page.evaluate(function() {
